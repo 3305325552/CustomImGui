@@ -46,4 +46,4 @@ Pull requests run formatting, clangd diagnostics, and a complete Clang build thr
 
 ## License
 
-CustomImGui is available under the [PolyForm Noncommercial License 1.0.0](LICENSE). Noncommercial use is permitted; commercial use is not licensed. Dear ImGui and ImAnim retain their upstream licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+CustomImGui is free software licensed under the [GNU Affero General Public License v3.0](LICENSE) (`AGPL-3.0-only`). Commercial use is permitted under the license terms. Modified versions that are distributed, or made available for users to interact with over a network, must provide the corresponding source as required by the AGPL. Dear ImGui and ImAnim retain their upstream licenses; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
