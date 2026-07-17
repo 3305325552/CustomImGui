@@ -1,0 +1,65 @@
+name: Quality
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clang-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Pull pinned public dependencies
+        shell: bash
+        run: git submodule update --init --depth 1 third_party/imgui third_party/ImAnim
+
+      - name: Set up MSYS2 Clang
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANG64
+          update: true
+          install: >-
+            git
+            mingw-w64-clang-x86_64-toolchain
+            mingw-w64-clang-x86_64-clang-tools-extra
+            mingw-w64-clang-x86_64-cmake
+            mingw-w64-clang-x86_64-ninja
+
+      - name: Check formatting
+        shell: msys2 {0}
+        run: |
+          mapfile -d '' files < <(find include examples -type f \( -name '*.c' -o -name '*.cc' -o -name '*.cpp' -o -name '*.h' -o -name '*.hpp' \) -print0)
+          clang-format --dry-run --Werror "${files[@]}"
+
+      - name: Configure
+        shell: msys2 {0}
+        run: >-
+          cmake -S . -B build/ci -G Ninja
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+          -DCUSTOM_IMGUI_BUILD_TESTS=ON
+
+      - name: Check clangd diagnostics
+        shell: msys2 {0}
+        run: clangd --check=examples/win32_dx11/main.cpp --compile-commands-dir=build/ci --enable-config --tweaks=
+
+      - name: Build
+        shell: msys2 {0}
+        run: cmake --build build/ci --parallel 2

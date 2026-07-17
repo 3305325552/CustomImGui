@@ -1,0 +1,61 @@
+name: Release
+
+run-name: Release ${{ github.ref_name }}
+
+on:
+  push:
+    tags:
+      - "*.*.*"
+      - "v*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: false
+
+      - name: Validate release tag
+        shell: bash
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          project_version="$(sed -nE 's/.*project\(CustomImGui VERSION ([0-9]+\.[0-9]+\.[0-9]+).*/\1/p' CMakeLists.txt)"
+          if [ -z "${project_version}" ] || [ "${tag_version}" != "${project_version}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match CMake project version ${project_version}." >&2
+            exit 1
+          fi
+
+      - name: Pull pinned public dependencies
+        shell: bash
+        run: git submodule update --init --depth 1 third_party/imgui third_party/ImAnim
+
+      - name: Set up MSYS2 Clang
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANG64
+          update: true
+          install: >-
+            git
+            mingw-w64-clang-x86_64-toolchain
+            mingw-w64-clang-x86_64-cmake
+            mingw-w64-clang-x86_64-ninja
+
+      - name: Configure and build
+        shell: msys2 {0}
+        run: |
+          cmake -S . -B build/release -G Ninja -DCMAKE_BUILD_TYPE=Release -DCUSTOM_IMGUI_BUILD_TESTS=ON
+          cmake --build build/release --parallel 2
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true

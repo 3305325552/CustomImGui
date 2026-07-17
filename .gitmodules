@@ -1,0 +1,6 @@
+[submodule "third_party/imgui"]
+	path = third_party/imgui
+	url = https://github.com/ocornut/imgui.git
+[submodule "third_party/ImAnim"]
+	path = third_party/ImAnim
+	url = https://github.com/soufianekhiat/ImAnim.git
